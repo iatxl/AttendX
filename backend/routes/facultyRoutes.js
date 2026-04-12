@@ -331,4 +331,64 @@ router.post('/live/create', protect, async (req, res) => {
     }
 });
 
+// @desc   Get class report for a live session (called when faculty ends class)
+// @route  GET /api/faculty/class-report/:roomId
+router.get('/class-report/:roomId', protect, async (req, res) => {
+    try {
+        const { roomId } = req.params;
+
+        // Find session by liveRoomId or _id
+        let session = await Session.findOne({ liveRoomId: roomId }).populate('subject', 'name code');
+        if (!session) {
+            // Try by _id
+            session = await Session.findById(roomId).populate('subject', 'name code').catch(() => null);
+        }
+
+        if (!session) {
+            // Return empty report — session may not have been formally created
+            return res.json({
+                sessionId: roomId,
+                subject: null,
+                date: new Date(),
+                totalStudents: 0,
+                present: 0,
+                absent: 0,
+                records: []
+            });
+        }
+
+        // Get all attendance records for this session
+        const records = await Attendance.find({ session: session._id })
+            .populate({
+                path: 'student',
+                populate: { path: 'user', select: 'name email' }
+            })
+            .sort({ createdAt: -1 });
+
+        const present = records.filter(r => r.status === 'Present').length;
+
+        res.json({
+            sessionId: session._id,
+            liveRoomId: roomId,
+            subject: session.subject ? { name: session.subject.name, code: session.subject.code } : null,
+            date: session.createdAt,
+            totalStudents: records.length,
+            present,
+            absent: records.length - present,
+            records: records.map(r => ({
+                _id: r._id,
+                studentName: r.student?.user?.name || 'Unknown',
+                studentEmail: r.student?.user?.email || '',
+                status: r.status,
+                focusScore: r.focusRatio != null ? Math.round(r.focusRatio * 100) : null,
+                duration: r.duration || 0,
+                joinedAt: r.createdAt
+            }))
+        });
+    } catch (err) {
+        console.error('Class report error:', err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;
