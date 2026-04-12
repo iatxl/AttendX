@@ -2,11 +2,12 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
 import FacultyLiveStream from '../components/FacultyLiveStream';
+import QRAttendance from '../components/QRAttendance';
 import {
     Users, BookOpen, Plus, Link2, ChevronDown, ChevronUp,
     CheckCircle, XCircle, BarChart2, Clock, Copy, Check, X,
     UserPlus, Radio, GraduationCap, TrendingUp, AlertCircle,
-    ExternalLink, Trash2, RefreshCw
+    ExternalLink, Trash2, RefreshCw, QrCode
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,14 +16,14 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 // ── Stat card ──────────────────────────────────────────────────────────────────
 function StatCard({ label, value, color = 'white', small = false }) {
     return (
-        <div className="bg-white/4 border border-white/8 rounded-2xl p-4 text-center">
+        <div className="bg-white/8 border border-white/15 rounded-2xl p-4 text-center">
             <p className={`font-bold mb-0.5 ${small ? 'text-xl' : 'text-3xl'} ${
                 color === 'green' ? 'text-green-400' :
                 color === 'red' ? 'text-red-400' :
                 color === 'blue' ? 'text-blue-400' :
                 color === 'amber' ? 'text-amber-400' : 'text-white'
             }`}>{value}</p>
-            <p className="text-white/35 text-xs">{label}</p>
+            <p className="text-white/55 text-xs">{label}</p>
         </div>
     );
 }
@@ -55,9 +56,9 @@ const FacultyDashboard = () => {
 
     const tabs = [
         { id: 'live', label: 'Go Live', icon: Radio },
+        { id: 'qr', label: 'QR Attendance', icon: QrCode },
         { id: 'students', label: 'Students', icon: Users },
         { id: 'subjects', label: 'Subjects', icon: BookOpen },
-        { id: 'create-class', label: 'Class Link', icon: Link2 },
         { id: 'invite', label: 'Invite', icon: UserPlus },
     ];
 
@@ -143,13 +144,13 @@ const FacultyDashboard = () => {
         <div className="space-y-5">
             {/* ── Tab bar ──────────────────────────────────────────────── */}
             <div className="overflow-x-auto pb-1 -mx-1 px-1">
-                <div className="flex gap-1 p-1 bg-white/4 rounded-2xl border border-white/8 w-fit">
+                <div className="flex gap-1 p-1 bg-white/6 rounded-2xl border border-white/12 w-fit">
                     {tabs.map(({ id, label, icon: Icon }) => (
                         <button key={id} onClick={() => setActiveTab(id)}
                             className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
                                 activeTab === id
                                     ? 'bg-white text-black shadow-sm'
-                                    : 'text-white/40 hover:text-white/70 hover:bg-white/6'
+                                    : 'text-white/55 hover:text-white hover:bg-white/8'
                             }`}
                         >
                             <Icon className="w-3.5 h-3.5" />
@@ -164,6 +165,13 @@ const FacultyDashboard = () => {
                 {activeTab === 'live' && (
                     <motion.div key="live" {...slideIn}>
                         <FacultyLiveStream subjects={subjects} />
+                    </motion.div>
+                )}
+
+                {/* ── QR ATTENDANCE ─────────────────────────────────────── */}
+                {activeTab === 'qr' && (
+                    <motion.div key="qr" {...slideIn}>
+                        <QRAttendance subjects={subjects} token={token} />
                     </motion.div>
                 )}
 

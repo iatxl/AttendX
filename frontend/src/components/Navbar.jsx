@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
-import { LogOut, User, Menu, X, LayoutDashboard, Radio } from 'lucide-react';
+import { LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
@@ -16,12 +16,6 @@ const Navbar = () => {
         setMobileOpen(false);
     };
 
-    const navLinks = user ? [
-        { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-    ] : [
-        { label: 'Login', to: '/login' },
-    ];
-
     return (
         <>
             <motion.nav
@@ -31,47 +25,46 @@ const Navbar = () => {
                 className="fixed top-0 left-0 right-0 z-50"
             >
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="mt-3 mx-2 sm:mx-4 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl px-5 py-3 flex items-center justify-between shadow-[0_0_40px_rgba(0,0,0,0.4)]">
+                    <div className="mt-3 mx-2 sm:mx-4 bg-white/8 backdrop-blur-2xl border border-white/15 rounded-2xl px-5 py-3 flex items-center justify-between shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+
                         {/* Logo */}
                         <Link to="/" className="font-display text-xl font-bold tracking-tight flex items-center gap-1">
                             <span className="text-white">Attend</span>
                             <span className="gradient-x">X</span>
                         </Link>
 
-                        {/* Desktop nav */}
-                        <div className="hidden md:flex items-center gap-2">
-                            {navLinks.map(({ label, to, icon: Icon }) => (
-                                <Link
-                                    key={to}
-                                    to={to}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
-                                        location.pathname === to
-                                            ? 'bg-white/10 text-white'
-                                            : 'text-white/50 hover:text-white hover:bg-white/5'
-                                    }`}
-                                >
-                                    {Icon && <Icon className="w-3.5 h-3.5" />}
-                                    {label}
-                                </Link>
-                            ))}
-                        </div>
+                        {/* Desktop: Dashboard link (only when logged in) */}
+                        {user && (
+                            <Link
+                                to="/dashboard"
+                                className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+                                    location.pathname === '/dashboard'
+                                        ? 'bg-white/15 text-white'
+                                        : 'text-white/70 hover:text-white hover:bg-white/8'
+                                }`}
+                            >
+                                <LayoutDashboard className="w-3.5 h-3.5" />
+                                Dashboard
+                            </Link>
+                        )}
 
                         {/* Right side */}
                         <div className="hidden md:flex items-center gap-3">
                             {user ? (
                                 <>
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
+                                    {/* User pill */}
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/8 border border-white/15">
                                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white">
                                             {user.name?.[0]?.toUpperCase()}
                                         </div>
-                                        <span className="text-white/70 text-sm font-medium">{user.name}</span>
-                                        <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30 capitalize">
+                                        <span className="text-white text-sm font-medium">{user.name}</span>
+                                        <span className="text-xs bg-indigo-500/25 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/40 capitalize">
                                             {user.role}
                                         </span>
                                     </div>
                                     <button
                                         onClick={handleLogout}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all text-sm"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white/60 hover:text-white hover:bg-white/8 transition-all text-sm"
                                     >
                                         <LogOut className="w-3.5 h-3.5" />
                                         Logout
@@ -79,7 +72,7 @@ const Navbar = () => {
                                 </>
                             ) : (
                                 <>
-                                    <Link to="/login" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">
+                                    <Link to="/login" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">
                                         Login
                                     </Link>
                                     <Link
@@ -94,7 +87,7 @@ const Navbar = () => {
 
                         {/* Mobile menu button */}
                         <button
-                            className="md:hidden text-white/60 hover:text-white p-1.5"
+                            className="md:hidden text-white/70 hover:text-white p-1.5"
                             onClick={() => setMobileOpen(o => !o)}
                         >
                             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -110,29 +103,27 @@ const Navbar = () => {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="fixed top-20 left-4 right-4 z-40 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-2xl"
+                        className="fixed top-20 left-4 right-4 z-40 bg-white/8 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-2xl"
                     >
                         <div className="space-y-1">
-                            {navLinks.map(({ label, to, icon: Icon }) => (
+                            {user && (
                                 <Link
-                                    key={to}
-                                    to={to}
+                                    to="/dashboard"
                                     onClick={() => setMobileOpen(false)}
-                                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
+                                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-white/80 hover:text-white hover:bg-white/8 transition-all text-sm font-medium"
                                 >
-                                    {Icon && <Icon className="w-4 h-4" />}
-                                    {label}
+                                    <LayoutDashboard className="w-4 h-4" /> Dashboard
                                 </Link>
-                            ))}
+                            )}
                             {user ? (
                                 <>
-                                    <div className="px-4 py-3 border-t border-white/10 mt-2 flex items-center gap-2">
+                                    <div className="px-4 py-3 border-t border-white/12 mt-2 flex items-center gap-2">
                                         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white">
                                             {user.name?.[0]?.toUpperCase()}
                                         </div>
                                         <div>
                                             <p className="text-white text-sm font-medium">{user.name}</p>
-                                            <p className="text-white/40 text-xs capitalize">{user.role}</p>
+                                            <p className="text-white/50 text-xs capitalize">{user.role}</p>
                                         </div>
                                     </div>
                                     <button
@@ -143,9 +134,9 @@ const Navbar = () => {
                                     </button>
                                 </>
                             ) : (
-                                <div className="pt-2 border-t border-white/10 space-y-2">
+                                <div className="pt-2 border-t border-white/12 space-y-2">
                                     <Link to="/login" onClick={() => setMobileOpen(false)}
-                                        className="block px-4 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/5 text-sm">
+                                        className="block px-4 py-3 rounded-xl text-white/80 hover:text-white hover:bg-white/8 text-sm">
                                         Login
                                     </Link>
                                     <Link to="/register" onClick={() => setMobileOpen(false)}

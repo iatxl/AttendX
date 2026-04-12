@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { generateSession, markAttendance, getStudentAttendance, markOnlineAttendance } = require('../controllers/attendanceController');
+const { generateSession, markAttendance, getStudentAttendance, markOnlineAttendance, verifyQrForFaculty } = require('../controllers/attendanceController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 // Faculty routes
 router.post('/session', protect, authorize('faculty', 'admin'), generateSession);
+router.post('/verify-qr', protect, authorize('faculty', 'admin'), verifyQrForFaculty);
 
 // Student routes
 router.post('/mark', protect, authorize('student'), markAttendance);

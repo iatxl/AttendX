@@ -178,9 +178,36 @@ const markOnlineAttendance = async (req, res) => {
     }
 }
 
+// @desc    Faculty uploads a photo of student's QR scan — marks student Present
+// @route   POST /api/attendance/verify-qr
+// @access  Private (Faculty)
+const verifyQrForFaculty = async (req, res) => {
+    const { qrCodeHash } = req.body;
+    if (!qrCodeHash) return res.status(400).json({ message: 'qrCodeHash is required' });
+
+    try {
+        // Find the matching session
+        const session = await Session.findOne({ qrCodeHash }).populate('subject', 'name code');
+        if (!session) return res.status(404).json({ message: 'QR code not recognised — session not found' });
+        if (new Date() > session.expiresAt) return res.status(400).json({ message: 'This QR code has expired. Generate a new one.' });
+
+        // Return session info so faculty can see which session this belongs to
+        res.json({
+            message: `QR verified for ${session.subject?.name || 'class'}`,
+            sessionId: session._id,
+            subject: session.subject,
+            expiresAt: session.expiresAt,
+            hint: 'Share the QR with students to let them scan and mark themselves present, or ask them to visit /dashboard and tap "Scan QR".'
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     generateSession,
     markAttendance,
     getStudentAttendance,
-    markOnlineAttendance
+    markOnlineAttendance,
+    verifyQrForFaculty
 };
