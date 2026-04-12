@@ -9,6 +9,32 @@ import {
     Building2, ChevronRight, Loader2, UserCheck
 } from 'lucide-react';
 
+const VIDEO_SRC = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_065045_c44942da-53c6-4804-b734-f9e07fc22e08.mp4';
+
+function useVideoFade(ref) {
+    useEffect(() => {
+        const video = ref.current;
+        if (!video) return;
+        let startTime = null, isFadingOut = false, raf = null;
+        const tick = (time) => {
+            if (!startTime) startTime = time;
+            const elapsed = time - startTime, dur = video.duration || 5;
+            if (elapsed < 500 && !isFadingOut) video.style.opacity = elapsed / 500;
+            else if (dur && video.currentTime >= dur - 0.5) {
+                isFadingOut = true;
+                video.style.opacity = Math.max(0, 1 - ((video.currentTime - (dur - 0.5)) / 0.5));
+            } else if (!isFadingOut) video.style.opacity = 1;
+            raf = requestAnimationFrame(tick);
+        };
+        const onPlay = () => { startTime = performance.now(); isFadingOut = false; video.style.opacity = 0; raf = requestAnimationFrame(tick); };
+        const onEnded = () => { cancelAnimationFrame(raf); video.style.opacity = 0; setTimeout(() => { video.currentTime = 0; video.play(); }, 100); };
+        video.addEventListener('play', onPlay);
+        video.addEventListener('ended', onEnded);
+        video.play().catch(() => {});
+        return () => { video.removeEventListener('play', onPlay); video.removeEventListener('ended', onEnded); cancelAnimationFrame(raf); };
+    }, [ref]);
+}
+
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -142,13 +168,14 @@ function FacultySearchStep({ onSelect, onSkip }) {
     );
 }
 
-// ── Main Register component ───────────────────────────────────────────────────
 const Register = () => {
-    const [step, setStep] = useState(0); // 0=details, 1=faculty-search (student only)
+    const [step, setStep] = useState(0);
     const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'student' });
     const [showPw, setShowPw] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const videoRef = useRef(null);
+    useVideoFade(videoRef);
 
     const { register } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -196,87 +223,72 @@ const Register = () => {
     const totalSteps = formData.role === 'student' ? 2 : 1;
 
     return (
-        <div className="min-h-screen bg-[#060606] flex items-center justify-center p-4 relative overflow-hidden">
-            {/* Ambient orbs */}
-            <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-amber-600/6 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute bottom-1/3 left-1/4 w-80 h-80 bg-indigo-600/8 rounded-full blur-3xl pointer-events-none" />
+        <div className="min-h-screen bg-[#060606] flex">
 
-            <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="w-full max-w-md"
-            >
-                <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+            {/* ── LEFT PANEL — form ──────────────────────────────────────── */}
+            <div className="flex-1 flex flex-col items-center justify-center p-6 relative order-2 lg:order-1">
 
-                    {/* Logo */}
-                    <div className="text-center mb-2">
-                        <Link to="/" className="inline-block font-display text-2xl font-bold tracking-tight mb-1">
-                            <span className="text-white">Attend</span>
-                            <span className="gradient-x">X</span>
-                        </Link>
-                    </div>
+                {/* Ambient orbs */}
+                <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-indigo-600/8 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-1/4 right-1/4 w-56 h-56 bg-amber-600/6 rounded-full blur-3xl pointer-events-none" />
 
+                {/* Mobile logo */}
+                <div className="lg:hidden mb-8 text-center">
+                    <Link to="/" className="inline-block font-display text-2xl font-bold tracking-tight">
+                        <span className="text-white">Attend</span>
+                        <span className="gradient-x">X</span>
+                    </Link>
+                </div>
+
+                <div className="w-full max-w-sm relative z-10">
                     {/* Step dots */}
-                    {step > 0 || totalSteps > 1 ? <StepDots current={step} total={totalSteps} /> : null}
+                    {(step > 0 || totalSteps > 1) && <StepDots current={step} total={totalSteps} />}
 
-                    {/* ── STEP 0: Account Details ── */}
                     <AnimatePresence mode="wait">
+                        {/* ── STEP 0: Account Details ── */}
                         {step === 0 && (
-                            <motion.div
-                                key="step0"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                transition={{ duration: 0.25 }}
+                            <motion.div key="step0"
+                                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}
                             >
-                                <div className="text-center mb-6">
+                                <div className="mb-7">
                                     <h1 className="text-2xl font-bold text-white mb-1">Create account</h1>
-                                    <p className="text-white/40 text-sm">Join AttendX — it's free</p>
+                                    <p className="text-white/35 text-sm">Join AttendX — it's free</p>
                                 </div>
 
                                 {error && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: -8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-xl mb-4 text-sm text-center"
-                                    >
+                                    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                                        className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2.5 rounded-xl mb-4 text-sm">
                                         {error}
                                     </motion.div>
                                 )}
 
-                                <form onSubmit={handleStep0} className="space-y-4">
-                                    {/* Name */}
+                                <form onSubmit={handleStep0} className="space-y-3">
                                     <div className="relative">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                                         <input type="text" name="name" value={formData.name} onChange={handleChange}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-white/25 focus:border-white/25 transition-all"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-white/20 focus:border-white/25 focus:outline-none transition-all"
                                             placeholder="Full Name" required />
                                     </div>
-
-                                    {/* Email */}
                                     <div className="relative">
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                                         <input type="email" name="email" value={formData.email} onChange={handleChange}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-white/25 focus:border-white/25 transition-all"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white text-sm placeholder-white/20 focus:border-white/25 focus:outline-none transition-all"
                                             placeholder="Email address" required />
                                     </div>
-
-                                    {/* Password */}
                                     <div className="relative">
-                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
                                         <input type={showPw ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange}
-                                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white text-sm placeholder-white/25 focus:border-white/25 transition-all"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-11 py-3 text-white text-sm placeholder-white/20 focus:border-white/25 focus:outline-none transition-all"
                                             placeholder="Password (min 6 chars)" required minLength={6} />
                                         <button type="button" onClick={() => setShowPw(v => !v)}
-                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors">
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 transition-colors">
                                             {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                         </button>
                                     </div>
 
-                                    {/* Role selector */}
                                     <div>
-                                        <p className="text-xs text-white/35 mb-2 px-1">I am a...</p>
+                                        <p className="text-xs text-white/30 mb-2 px-1">I am a...</p>
                                         <div className="grid grid-cols-2 gap-2">
                                             {[
                                                 { value: 'student', label: 'Student', icon: GraduationCap, desc: 'Attend classes' },
@@ -288,8 +300,7 @@ const Register = () => {
                                                         formData.role === value
                                                             ? 'bg-white/10 border-white/25 text-white'
                                                             : 'bg-white/3 border-white/8 text-white/35 hover:text-white/55 hover:border-white/15'
-                                                    }`}
-                                                >
+                                                    }`}>
                                                     <Icon className="w-5 h-5" />
                                                     <span className="font-semibold">{label}</span>
                                                     <span className="text-xs opacity-60">{desc}</span>
@@ -298,16 +309,13 @@ const Register = () => {
                                         </div>
                                     </div>
 
-                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                                    <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
                                         type="submit" disabled={loading}
-                                        className="w-full bg-white text-black font-semibold py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition-all hover:bg-white/90 disabled:opacity-50 mt-1"
-                                    >
-                                        {loading
-                                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                                        className="w-full bg-white text-black font-semibold py-3 rounded-xl flex items-center justify-center gap-2 text-sm hover:bg-white/90 disabled:opacity-50 transition-all mt-1">
+                                        {loading ? <Loader2 className="w-4 h-4 animate-spin" />
                                             : formData.role === 'student'
-                                                ? <> Continue <ChevronRight className="w-4 h-4" /></>
-                                                : <> Create Account <ArrowRight className="w-4 h-4" /></>
-                                        }
+                                                ? <><span>Continue</span><ChevronRight className="w-4 h-4" /></>
+                                                : <><span>Create Account</span><ArrowRight className="w-4 h-4" /></>}
                                     </motion.button>
                                 </form>
 
@@ -316,24 +324,18 @@ const Register = () => {
                                     <span className="text-white/20 text-xs">or</span>
                                     <div className="flex-1 h-px bg-white/8" />
                                 </div>
-
                                 <p className="text-center text-white/35 text-sm">
                                     Already have an account?{' '}
-                                    <Link to="/login" className="text-white hover:text-white/80 font-medium transition-colors">
-                                        Sign in →
-                                    </Link>
+                                    <Link to="/login" className="text-white hover:text-white/75 font-medium transition-colors">Sign in →</Link>
                                 </p>
                             </motion.div>
                         )}
 
-                        {/* ── STEP 1: Faculty Search (students only) ── */}
+                        {/* ── STEP 1: Faculty Search ── */}
                         {step === 1 && (
-                            <motion.div
-                                key="step1"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                transition={{ duration: 0.25 }}
+                            <motion.div key="step1"
+                                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}
                             >
                                 {loading ? (
                                     <div className="py-12 flex flex-col items-center gap-3">
@@ -341,16 +343,44 @@ const Register = () => {
                                         <p className="text-white/40 text-sm">Enrolling you...</p>
                                     </div>
                                 ) : (
-                                    <FacultySearchStep
-                                        onSelect={handleFacultySelect}
-                                        onSkip={handleSkipFaculty}
-                                    />
+                                    <FacultySearchStep onSelect={handleFacultySelect} onSkip={handleSkipFaculty} />
                                 )}
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
-            </motion.div>
+            </div>
+
+            {/* ── RIGHT PANEL — video ────────────────────────────────────── */}
+            <div className="hidden lg:flex relative w-[45%] flex-col overflow-hidden order-1 lg:order-2">
+                <div className="absolute inset-0 overflow-hidden">
+                    <video ref={videoRef}
+                        className="absolute top-0 left-0 w-full h-full object-cover transition-opacity"
+                        src={VIDEO_SRC} muted playsInline style={{ opacity: 0 }} />
+                    {/* Fade left edge into form panel */}
+                    <div className="absolute inset-0 bg-gradient-to-l from-transparent via-[#060606]/20 to-[#060606]" />
+                    <div className="absolute inset-0 bg-gradient-to-b from-[#060606] via-transparent to-[#060606]" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] opacity-60 bg-gray-950 blur-[60px] pointer-events-none" />
+                </div>
+
+                {/* Logo top-right */}
+                <div className="relative z-10 p-8 flex justify-end">
+                    <Link to="/" className="inline-block font-display text-xl font-bold tracking-tight">
+                        <span className="text-white">Attend</span>
+                        <span className="gradient-x">X</span>
+                    </Link>
+                </div>
+
+                {/* Bottom-right brand text */}
+                <div className="relative z-10 mt-auto p-8 text-right">
+                    <h2 className="text-white text-3xl font-bold leading-tight mb-2">
+                        Join thousands<br />of students
+                    </h2>
+                    <p className="text-white/35 text-sm leading-relaxed ml-auto max-w-xs">
+                        Smart attendance tracking that rewards focus and keeps you on track.
+                    </p>
+                </div>
+            </div>
         </div>
     );
 };
