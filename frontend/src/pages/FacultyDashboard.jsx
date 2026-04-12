@@ -123,22 +123,24 @@ const FacultyDashboard = () => {
 
     return (
         <div className="space-y-6">
-            {/* Tab Bar */}
-            <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 w-fit">
-                {tabs.map(({ id, label, icon: Icon }) => (
-                    <button
-                        key={id}
-                        onClick={() => setActiveTab(id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                            activeTab === id
-                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                : 'text-white/50 hover:text-white/80'
-                        }`}
-                    >
-                        <Icon className="w-4 h-4" />
-                        {label}
-                    </button>
-                ))}
+            {/* Tab Bar — scrollable on mobile */}
+            <div className="overflow-x-auto pb-1">
+                <div className="flex gap-1 p-1 bg-white/5 rounded-xl border border-white/8 w-fit min-w-full sm:min-w-0">
+                    {tabs.map(({ id, label, icon: Icon }) => (
+                        <button
+                            key={id}
+                            onClick={() => setActiveTab(id)}
+                            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all ${
+                                activeTab === id
+                                    ? 'bg-white/10 text-white border border-white/15'
+                                    : 'text-white/40 hover:text-white/70'
+                            }`}
+                        >
+                            <Icon className="w-3.5 h-3.5" />
+                            {label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* LIVE TAB */}

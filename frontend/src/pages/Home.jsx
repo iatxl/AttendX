@@ -97,19 +97,18 @@ export default function Home() {
             {/* Content Wrapper */}
             <div className="relative z-10 flex flex-col flex-1 pb-10">
                 {/* Navbar */}
-                <div className="w-full py-5 px-8 flex flex-row justify-between items-center relative">
-                    <div className="flex items-center">
-                        {/* We use a placeholder since the logo image might not exist yet, but request asked for src/assets/logo.png */}
-                        {/* Fallback to text if img fails to emphasize the UI premiumness */}
-                        <div className="font-['General_Sans'] font-bold text-2xl tracking-tight">AttendX</div>
+                <div className="w-full py-4 px-4 sm:px-8 flex flex-row justify-between items-center relative">
+                    <div className="font-display font-bold text-xl tracking-tight">
+                        <span className="text-white">Attend</span>
+                        <span className="gradient-x">X</span>
                     </div>
 
-                    <div className="flex items-center space-x-8">
+                    <div className="hidden md:flex items-center space-x-8">
                         {navItems.map((item, idx) => (
-                            <button 
-                                key={idx} 
+                            <button
+                                key={idx}
                                 onClick={() => navigate('/login')}
-                                className="flex items-center text-[hsl(var(--foreground))]/90 hover:text-[hsl(var(--foreground))] transition-colors text-sm font-medium"
+                                className="flex items-center text-white/60 hover:text-white transition-colors text-sm font-medium"
                             >
                                 {item.name}
                                 {item.hasChevron && <ChevronDown className="ml-1 w-4 h-4 opacity-70" />}
@@ -117,15 +116,23 @@ export default function Home() {
                         ))}
                     </div>
 
-                    <div className="flex items-center">
-                        <button 
+                    <div className="flex items-center gap-3">
+                        <button
                             onClick={() => navigate('/login')}
-                            className="bg-white text-black hover:bg-gray-100 transition-colors rounded-full px-4 py-2 font-medium text-sm">
-                            Sign Up
+                            className="text-white/50 hover:text-white text-sm transition-colors hidden sm:block"
+                        >
+                            Sign In
+                        </button>
+                        <button
+                            onClick={() => navigate('/register')}
+                            className="bg-white text-black hover:bg-white/90 transition-colors rounded-full px-4 py-2 font-medium text-sm"
+                        >
+                            Get Started →
                         </button>
                     </div>
+
                     {/* Divider Line */}
-                    <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[hsl(var(--foreground))]/20 to-transparent mt-[3px]"></div>
+                    <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 </div>
 
                 {/* Hero Content */}

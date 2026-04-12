@@ -1,52 +1,164 @@
-import { useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useContext, useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
-import { LogOut, User } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { LogOut, User, Menu, X, LayoutDashboard, Radio } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
+    const location = useLocation();
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     const handleLogout = () => {
         logout();
         navigate('/login');
+        setMobileOpen(false);
     };
 
-    return (
-        <motion.nav
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            className="glass-panel sticky top-0 z-50 rounded-none border-x-0 border-t-0"
-        >
-            <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-                <Link to="/" className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
-                    AttendX
-                </Link>
+    const navLinks = user ? [
+        { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
+    ] : [
+        { label: 'Login', to: '/login' },
+    ];
 
-                <div className="flex items-center gap-6">
-                    {user ? (
-                        <>
-                            <span className="flex items-center gap-2 text-gray-300">
-                                <User size={18} className="text-purple-400" />
-                                {user.name} <span className="text-xs bg-purple-500/20 px-2 py-1 rounded border border-purple-500/50 capitalize">{user.role}</span>
-                            </span>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors"
-                            >
-                                <LogOut size={18} /> Logout
-                            </button>
-                        </>
-                    ) : (
-                        <div className="flex gap-6">
-                            <Link to="/login" className="text-gray-300 hover:text-white transition-colors">Login</Link>
-                            <Link to="/register" className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors">Register</Link>
+    return (
+        <>
+            <motion.nav
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.4 }}
+                className="fixed top-0 left-0 right-0 z-50"
+            >
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="mt-3 mx-2 sm:mx-4 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl px-5 py-3 flex items-center justify-between shadow-[0_0_40px_rgba(0,0,0,0.4)]">
+                        {/* Logo */}
+                        <Link to="/" className="font-display text-xl font-bold tracking-tight flex items-center gap-1">
+                            <span className="text-white">Attend</span>
+                            <span className="gradient-x">X</span>
+                        </Link>
+
+                        {/* Desktop nav */}
+                        <div className="hidden md:flex items-center gap-2">
+                            {navLinks.map(({ label, to, icon: Icon }) => (
+                                <Link
+                                    key={to}
+                                    to={to}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+                                        location.pathname === to
+                                            ? 'bg-white/10 text-white'
+                                            : 'text-white/50 hover:text-white hover:bg-white/5'
+                                    }`}
+                                >
+                                    {Icon && <Icon className="w-3.5 h-3.5" />}
+                                    {label}
+                                </Link>
+                            ))}
                         </div>
-                    )}
+
+                        {/* Right side */}
+                        <div className="hidden md:flex items-center gap-3">
+                            {user ? (
+                                <>
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
+                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white">
+                                            {user.name?.[0]?.toUpperCase()}
+                                        </div>
+                                        <span className="text-white/70 text-sm font-medium">{user.name}</span>
+                                        <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30 capitalize">
+                                            {user.role}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/5 transition-all text-sm"
+                                    >
+                                        <LogOut className="w-3.5 h-3.5" />
+                                        Logout
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link to="/login" className="text-white/50 hover:text-white text-sm transition-colors px-3 py-1.5">
+                                        Login
+                                    </Link>
+                                    <Link
+                                        to="/register"
+                                        className="bg-white text-black text-sm font-semibold px-4 py-1.5 rounded-full hover:bg-white/90 transition-all"
+                                    >
+                                        Get Started →
+                                    </Link>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Mobile menu button */}
+                        <button
+                            className="md:hidden text-white/60 hover:text-white p-1.5"
+                            onClick={() => setMobileOpen(o => !o)}
+                        >
+                            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </motion.nav>
+            </motion.nav>
+
+            {/* Mobile Dropdown */}
+            <AnimatePresence>
+                {mobileOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="fixed top-20 left-4 right-4 z-40 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-2xl"
+                    >
+                        <div className="space-y-1">
+                            {navLinks.map(({ label, to, icon: Icon }) => (
+                                <Link
+                                    key={to}
+                                    to={to}
+                                    onClick={() => setMobileOpen(false)}
+                                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/5 transition-all text-sm font-medium"
+                                >
+                                    {Icon && <Icon className="w-4 h-4" />}
+                                    {label}
+                                </Link>
+                            ))}
+                            {user ? (
+                                <>
+                                    <div className="px-4 py-3 border-t border-white/10 mt-2 flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white">
+                                            {user.name?.[0]?.toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <p className="text-white text-sm font-medium">{user.name}</p>
+                                            <p className="text-white/40 text-xs capitalize">{user.role}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all text-sm"
+                                    >
+                                        <LogOut className="w-4 h-4" /> Logout
+                                    </button>
+                                </>
+                            ) : (
+                                <div className="pt-2 border-t border-white/10 space-y-2">
+                                    <Link to="/login" onClick={() => setMobileOpen(false)}
+                                        className="block px-4 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/5 text-sm">
+                                        Login
+                                    </Link>
+                                    <Link to="/register" onClick={() => setMobileOpen(false)}
+                                        className="block px-4 py-3 rounded-xl bg-white text-black text-sm font-semibold text-center">
+                                        Get Started →
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
     );
 };
 
