@@ -12,7 +12,7 @@ const subjectSchema = new mongoose.Schema({
     },
     department: {
         type: String,
-        required: true
+        default: 'General'
     },
     semester: {
         type: Number,

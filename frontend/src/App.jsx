@@ -1,13 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useContext } from 'react';
 import AuthContext from './context/AuthContext';
-import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import OnlineClass from './pages/OnlineClass';
 import JoinFaculty from './pages/JoinFaculty';
+import LiveClassViewer from './pages/LiveClassViewer';
 import AppLayout from './components/AppLayout';
 
 const PrivateRoute = ({ children }) => {
@@ -38,6 +38,14 @@ function App() {
             element={
               <PrivateRoute>
                 <AppLayout><OnlineClass /></AppLayout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/live"
+            element={
+              <PrivateRoute>
+                <LiveClassViewer />
               </PrivateRoute>
             }
           />

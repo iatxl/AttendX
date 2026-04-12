@@ -1,4 +1,4 @@
-import React, { useState, useContext, useCallback, useRef } from 'react';
+import React, { useState, useContext, useCallback, useRef, useEffect } from 'react';
 import EyeTracker from '../components/EyeTracker';
 import AuthContext from '../context/AuthContext';
 import axios from 'axios';
@@ -6,7 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     CheckCircle, XCircle, Users, Video, ExternalLink,
-    PhoneOff, BarChart2, Eye, Clock, MonitorPlay
+    PhoneOff, BarChart2, Eye, Clock, MonitorPlay, Monitor, StopCircle
 } from 'lucide-react';
 
 // ─── Helper: parse & validate meeting links ───────────────────────────────────
@@ -116,6 +116,8 @@ export default function OnlineClass() {
     const urlMeetLink = searchParams.get('meet'); // ?meet=<encoded URL>
 
     const classStartTime = useRef(Date.now());
+    const screenVideoRef = useRef(null);
+    const screenStreamRef = useRef(null);
 
     // Focus tracking state
     const [focusRatio, setFocusRatio] = useState(0);
@@ -131,7 +133,45 @@ export default function OnlineClass() {
     // Meeting link UI
     const [meetLink, setMeetLink] = useState(urlMeetLink ? decodeURIComponent(urlMeetLink) : '');
     const [meetLinkInput, setMeetLinkInput] = useState('');
-    const [showMeetPanel, setShowMeetPanel] = useState(!!urlMeetLink);
+
+    // Screen share state
+    const [screenSharing, setScreenSharing] = useState(false);
+    const [screenShareError, setScreenShareError] = useState('');
+
+    // Start capturing screen / tab
+    const startScreenShare = async () => {
+        setScreenShareError('');
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: { cursor: 'always' },
+                audio: true,
+            });
+            screenStreamRef.current = stream;
+            if (screenVideoRef.current) {
+                screenVideoRef.current.srcObject = stream;
+                await screenVideoRef.current.play();
+            }
+            setScreenSharing(true);
+            // Auto-stop when user ends share from browser UI
+            stream.getVideoTracks()[0].onended = () => stopScreenShare();
+        } catch (err) {
+            if (err.name !== 'NotAllowedError') {
+                setScreenShareError('Could not capture screen. Please try again.');
+            }
+        }
+    };
+
+    const stopScreenShare = () => {
+        if (screenStreamRef.current) {
+            screenStreamRef.current.getTracks().forEach(t => t.stop());
+            screenStreamRef.current = null;
+        }
+        if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
+        setScreenSharing(false);
+    };
+
+    // Cleanup on unmount
+    useEffect(() => () => stopScreenShare(), []);
 
     const handleFocusUpdate = useCallback((ratio, isFocused, isActive = false) => {
         setFocusRatio(ratio);
@@ -219,93 +259,108 @@ export default function OnlineClass() {
                         {/* Main Area */}
                         <div className="lg:col-span-2 flex flex-col gap-4">
 
-                            {/* Meeting Link Banner */}
-                            {!meetLink ? (
-                                <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                                    <p className="text-white/60 text-sm font-medium mb-3 flex items-center gap-2">
-                                        <Video className="w-4 h-4 text-indigo-400" />
-                                        Add your Google Meet / Teams / Zoom link
-                                    </p>
-                                    <div className="flex gap-2">
-                                        <input
-                                            value={meetLinkInput}
-                                            onChange={e => setMeetLinkInput(e.target.value)}
-                                            onKeyDown={e => e.key === 'Enter' && applyMeetLink()}
-                                            placeholder="https://meet.google.com/xxx-xxxx-xxx"
-                                            className="flex-1 bg-white/10 border border-white/20 rounded-xl px-4 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-indigo-400/50"
-                                        />
-                                        <button
-                                            onClick={applyMeetLink}
-                                            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                                        >
-                                            Open
-                                        </button>
-                                    </div>
-                                    <p className="text-white/20 text-xs mt-2">
-                                        Supports: Google Meet · Microsoft Teams · Zoom
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-                                    {/* Meeting header bar */}
-                                    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-base">{meetMeta?.icon}</span>
-                                            <span className="text-sm font-medium text-white">{meetMeta?.label}</span>
-                                            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                                            <span className="text-xs text-green-400">Live</span>
+                            {/* ─── SCREEN SHARE / MEETING AREA ─── */}
+                            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+
+                                {!screenSharing ? (
+                                    /* ─ Pre-share panel ─ */
+                                    <div className="p-6 text-center space-y-4">
+                                        <div className="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center mx-auto">
+                                            <Monitor className="w-7 h-7 text-indigo-400" />
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <a
-                                                href={meetLink}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20"
-                                            >
-                                                <ExternalLink className="w-3.5 h-3.5" />
-                                                Open in New Tab
-                                            </a>
+                                        <div>
+                                            <h3 className="text-white font-semibold mb-1">Stream Your Meeting Here</h3>
+                                            <p className="text-white/40 text-sm">
+                                                Open Google Meet / Teams / Zoom in another tab, then click below to share that tab's screen directly inside AttendX.
+                                            </p>
+                                        </div>
+
+                                        {/* Steps */}
+                                        <div className="bg-black/20 rounded-xl p-4 text-left space-y-2">
+                                            {[
+                                                { n: 1, t: 'Open your meeting link in a new tab', sub: meetLink },
+                                                { n: 2, t: 'Come back here and click Share Screen' },
+                                                { n: 3, t: 'Pick the meeting tab in the dialog' },
+                                                { n: 4, t: 'Meeting streams here — face tracking runs alongside' },
+                                            ].map(s => (
+                                                <div key={s.n} className="flex items-start gap-3">
+                                                    <span className="w-5 h-5 rounded-full bg-indigo-500/30 text-indigo-400 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{s.n}</span>
+                                                    <div>
+                                                        <p className="text-white/70 text-sm">{s.t}</p>
+                                                        {s.sub && (
+                                                            <a href={s.sub} target="_blank" rel="noopener noreferrer"
+                                                                className="text-indigo-400 text-xs hover:underline truncate block max-w-xs">
+                                                                {s.sub}
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="flex gap-3 justify-center flex-wrap">
+                                            {meetLink && (
+                                                <a href={meetLink} target="_blank" rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-white/10 text-white/70 hover:text-white hover:border-white/20 transition-colors">
+                                                    <ExternalLink className="w-4 h-4" />
+                                                    Open {getMeetingMeta(meetLink)?.label || 'Meeting'}
+                                                </a>
+                                            )}
                                             <button
-                                                onClick={() => { setMeetLink(''); setShowMeetPanel(false); }}
-                                                className="text-white/30 hover:text-white/60 text-xs px-2 py-1.5"
+                                                onClick={startScreenShare}
+                                                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors"
                                             >
-                                                Change
+                                                <Monitor className="w-4 h-4" />
+                                                Share Screen / Tab
+                                            </button>
+                                        </div>
+
+                                        {!meetLink && (
+                                            <div className="flex gap-2">
+                                                <input
+                                                    value={meetLinkInput}
+                                                    onChange={e => setMeetLinkInput(e.target.value)}
+                                                    placeholder="Optional: paste your meeting link first"
+                                                    className="flex-1 bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white text-xs placeholder-white/30 focus:outline-none focus:border-indigo-400/50"
+                                                />
+                                                <button onClick={() => setMeetLink(meetLinkInput)}
+                                                    className="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs text-white/70 transition-colors">
+                                                    Set
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {screenShareError && (
+                                            <p className="text-red-400 text-xs">{screenShareError}</p>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* ─ Live screen stream ─ */
+                                    <div className="relative">
+                                        <video
+                                            ref={screenVideoRef}
+                                            className="w-full aspect-video bg-black object-contain"
+                                            muted={false}
+                                            playsInline
+                                        />
+                                        {/* Overlay controls */}
+                                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                                            <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur px-3 py-1.5 rounded-full">
+                                                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                                                <span className="text-white text-xs font-medium">LIVE</span>
+                                            </div>
+                                            <button
+                                                onClick={stopScreenShare}
+                                                className="flex items-center gap-1.5 bg-black/70 backdrop-blur hover:bg-red-500/80 text-white px-3 py-1.5 rounded-full text-xs transition-colors"
+                                            >
+                                                <StopCircle className="w-3.5 h-3.5" /> Stop Sharing
                                             </button>
                                         </div>
                                     </div>
+                                )}
+                            </div>
 
-                                    {/* Embed area */}
-                                    <div className="relative aspect-video bg-black/50 flex flex-col items-center justify-center gap-4 p-6 text-center">
-                                        {/* Note: Google Meet/Teams block iframe embedding for security. We show a launch button instead. */}
-                                        <div className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl mb-2"
-                                            style={{ background: `${meetMeta?.color}22`, border: `1px solid ${meetMeta?.color}44` }}>
-                                            {meetMeta?.icon}
-                                        </div>
-                                        <div>
-                                            <p className="text-white font-semibold mb-1">{meetMeta?.label} is ready</p>
-                                            <p className="text-white/40 text-sm mb-4">
-                                                Click below to open your meeting.<br/>
-                                                AttendX will keep tracking your focus in the background.
-                                            </p>
-                                        </div>
-                                        <a
-                                            href={meetLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-medium text-sm transition-all hover:scale-105 active:scale-95"
-                                            style={{ background: meetMeta?.color }}
-                                        >
-                                            <ExternalLink className="w-4 h-4" />
-                                            Join {meetMeta?.label}
-                                        </a>
-                                        <p className="text-white/20 text-xs mt-2">
-                                            ℹ️ Keep this tab open — your attendance is being tracked here
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Alert banner when not focused */}
+                            {/* Alert banner */}
                             <AnimatePresence>
                                 {isTrackingActive && !isCurrentlyFocused && (
                                     <motion.div

@@ -8,12 +8,12 @@ const sessionSchema = new mongoose.Schema({
     },
     faculty: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // Linking to User for easier querying, or could be Faculty
+        ref: 'User',
         required: true
     },
     qrCodeHash: {
         type: String,
-        required: true
+        default: ''
     },
     isActive: {
         type: Boolean,
@@ -22,6 +22,11 @@ const sessionSchema = new mongoose.Schema({
     expiresAt: {
         type: Date,
         required: true
+    },
+    // For live WebRTC sessions — stores the socket room ID
+    liveRoomId: {
+        type: String,
+        default: null
     }
 }, { timestamps: true });
 

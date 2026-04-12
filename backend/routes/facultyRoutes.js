@@ -81,18 +81,27 @@ router.get('/subjects', protect, async (req, res) => {
 router.post('/subjects', protect, async (req, res) => {
     try {
         const faculty = await Faculty.findOne({ user: req.user._id });
-        if (!faculty) return res.status(404).json({ message: 'Faculty profile not found' });
+        if (!faculty) return res.status(404).json({ message: 'Faculty profile not found. Please log out and log back in.' });
 
-        const { name, code, department, semester } = req.body;
+        const { name, code, semester } = req.body;
+        if (!name || !code) return res.status(400).json({ message: 'Subject name and code are required.' });
+
+        // Check for duplicate code
+        const existing = await Subject.findOne({ code: code.toUpperCase().trim() });
+        if (existing) return res.status(400).json({ message: `Subject code "${code}" already exists. Use a different code.` });
+
         const subject = await Subject.create({
-            name,
-            code,
-            department: department || faculty.department,
-            semester: semester || 1,
+            name: name.trim(),
+            code: code.toUpperCase().trim(),
+            department: faculty.department || 'General',
+            semester: parseInt(semester) || 1,
             faculty: faculty._id
         });
         res.status(201).json(subject);
     } catch (err) {
+        if (err.code === 11000) {
+            return res.status(400).json({ message: 'That subject code is already taken. Please use a unique code.' });
+        }
         res.status(500).json({ message: err.message });
     }
 });
@@ -124,9 +133,6 @@ router.get('/students/:studentId/report', protect, async (req, res) => {
 
         const total = attendance.length;
         const present = attendance.filter(a => a.status === 'Present').length;
-        const focusScore = attendance
-            .filter(a => a.verificationMethod === 'Face')
-            .reduce((sum, a) => sum + (a.confidenceScore || 0), 0);
 
         res.json({
             total,
@@ -140,13 +146,16 @@ router.get('/students/:studentId/report', protect, async (req, res) => {
     }
 });
 
-// @desc   Create an online class link (session) for a subject
+// @desc   Create an online class join link (session)
 // @route  POST /api/faculty/class/create
 router.post('/class/create', protect, async (req, res) => {
     try {
         const { subjectId, durationMinutes = 60 } = req.body;
-
         if (!subjectId) return res.status(400).json({ message: 'subjectId is required' });
+
+        // Validate subject exists
+        const subject = await Subject.findById(subjectId);
+        if (!subject) return res.status(404).json({ message: 'Subject not found' });
 
         const qrCodeHash = 'ONLINE_' + crypto.randomBytes(12).toString('hex');
         const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
@@ -159,13 +168,54 @@ router.post('/class/create', protect, async (req, res) => {
             isActive: true
         });
 
-        const classLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/class?session=${session._id}`;
+        const FRONTEND = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const classLink = `${FRONTEND}/class?session=${session._id}`;
 
         res.status(201).json({
             sessionId: session._id,
             classLink,
             expiresAt,
             durationMinutes
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// @desc   Create a live class session and return a joinable link
+// @route  POST /api/faculty/live/create
+router.post('/live/create', protect, async (req, res) => {
+    try {
+        const { subjectId, durationMinutes = 120 } = req.body;
+        if (!subjectId) return res.status(400).json({ message: 'subjectId is required' });
+
+        const subject = await Subject.findById(subjectId);
+        if (!subject) return res.status(404).json({ message: 'Subject not found' });
+
+        // Generate a unique live room ID
+        const liveRoomId = 'LIVE_' + crypto.randomBytes(10).toString('hex');
+        const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+
+        const session = await Session.create({
+            subject: subjectId,
+            faculty: req.user._id,
+            qrCodeHash: liveRoomId,
+            liveRoomId,
+            expiresAt,
+            isActive: true
+        });
+
+        const FRONTEND = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const liveLink = `${FRONTEND}/live?session=${liveRoomId}`;
+        const broadcastLink = `${FRONTEND}/live?session=${liveRoomId}&mode=broadcast`;
+
+        res.status(201).json({
+            sessionId: session._id,
+            liveRoomId,
+            liveLink,       // share with students
+            broadcastLink,  // faculty uses this to stream
+            subjectName: subject.name,
+            expiresAt
         });
     } catch (err) {
         res.status(500).json({ message: err.message });

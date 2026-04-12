@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
+import FacultyLiveStream from '../components/FacultyLiveStream';
 import { 
     Users, BookOpen, Plus, Link2, ChevronDown, ChevronUp, 
-    CheckCircle, XCircle, BarChart2, Clock, Copy, Check, X, UserPlus
+    CheckCircle, XCircle, BarChart2, Clock, Copy, Check, X, UserPlus, Radio
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -113,9 +114,10 @@ const FacultyDashboard = () => {
     };
 
     const tabs = [
+        { id: 'live', label: '🔴 Go Live', icon: Radio },
         { id: 'students', label: 'Students', icon: Users },
         { id: 'subjects', label: 'Subjects', icon: BookOpen },
-        { id: 'create-class', label: 'Create Class', icon: Link2 },
+        { id: 'create-class', label: 'Class Link', icon: Link2 },
         { id: 'invite', label: 'Invite Students', icon: UserPlus },
     ];
 
@@ -138,6 +140,13 @@ const FacultyDashboard = () => {
                     </button>
                 ))}
             </div>
+
+            {/* LIVE TAB */}
+            {activeTab === 'live' && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                    <FacultyLiveStream subjects={subjects} />
+                </motion.div>
+            )}
 
             {/* STUDENTS TAB */}
             {activeTab === 'students' && (
