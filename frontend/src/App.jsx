@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import OnlineClass from './pages/OnlineClass';
+import JoinFaculty from './pages/JoinFaculty';
 import AppLayout from './components/AppLayout';
 
 const PrivateRoute = ({ children }) => {
@@ -40,6 +41,7 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route path="/join" element={<JoinFaculty />} />
           <Route path="/" element={<Home />} />
         </Routes>
       </div>

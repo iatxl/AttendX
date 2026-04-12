@@ -21,14 +21,25 @@ const registerUser = async (req, res) => {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        const user = await User.create({
-            name,
-            email,
-            password,
-            role
-        });
+        const user = await User.create({ name, email, password, role });
 
         if (user) {
+            // Auto-create profile based on role
+            if (role === 'faculty') {
+                const Faculty = require('../models/Faculty');
+                const crypto = require('crypto');
+                const inviteCode = crypto.randomBytes(6).toString('hex').toUpperCase();
+                await Faculty.create({
+                    user: user._id,
+                    department: 'General',
+                    designation: 'Lecturer',
+                    inviteCode
+                });
+            } else if (role === 'student') {
+                const Student = require('../models/Student');
+                await Student.create({ user: user._id });
+            }
+
             res.status(201).json({
                 _id: user._id,
                 name: user.name,
@@ -54,6 +65,28 @@ const loginUser = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (user && (await user.matchPassword(password))) {
+            // Ensure profile exists (backfill for pre-fix accounts)
+            if (user.role === 'faculty') {
+                const Faculty = require('../models/Faculty');
+                const crypto = require('crypto');
+                const existing = await Faculty.findOne({ user: user._id });
+                if (!existing) {
+                    const inviteCode = crypto.randomBytes(6).toString('hex').toUpperCase();
+                    await Faculty.create({
+                        user: user._id,
+                        department: 'General',
+                        designation: 'Lecturer',
+                        inviteCode
+                    });
+                }
+            } else if (user.role === 'student') {
+                const Student = require('../models/Student');
+                const existing = await Student.findOne({ user: user._id });
+                if (!existing) {
+                    await Student.create({ user: user._id });
+                }
+            }
+
             res.json({
                 _id: user._id,
                 name: user.name,
@@ -81,8 +114,4 @@ const getMe = async (req, res) => {
     }
 };
 
-module.exports = {
-    registerUser,
-    loginUser,
-    getMe,
-};
+module.exports = { registerUser, loginUser, getMe };

@@ -8,11 +8,16 @@ const facultySchema = new mongoose.Schema({
     },
     department: {
         type: String,
-        required: true
+        default: 'General'
     },
     designation: {
         type: String,
-        required: true
+        default: 'Lecturer'
+    },
+    // Unique invite code for adding students
+    inviteCode: {
+        type: String,
+        unique: true
     }
 }, { timestamps: true });
 

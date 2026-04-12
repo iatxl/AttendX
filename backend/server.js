@@ -21,6 +21,7 @@ mongoose.connect(process.env.MONGO_URI, {
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/attendance', require('./routes/attendanceRoutes'));
+app.use('/api/faculty', require('./routes/facultyRoutes'));
 
 app.get('/', (req, res) => {
     res.send('AttendX Backend is Running');

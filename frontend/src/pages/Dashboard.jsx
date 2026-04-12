@@ -5,6 +5,7 @@ import QRGenerator from '../components/QRGenerator';
 import QRScanner from '../components/QRScanner';
 import FaceRecognition from '../components/FaceRecognition';
 import AnalyticsCharts from '../components/AnalyticsCharts';
+import FacultyDashboard from './FacultyDashboard';
 import { motion } from 'framer-motion';
 
 const Dashboard = () => {
@@ -72,10 +73,8 @@ const Dashboard = () => {
 
                     {user?.role === 'faculty' && (
                         <motion.div variants={itemVariants} className="p-6 bg-green-500/10 border border-green-500/20 rounded-xl">
-                            <h3 className="text-xl font-bold text-green-400 mb-6">Faculty Actions</h3>
-                            <div className="max-w-md mx-auto">
-                                <QRGenerator />
-                            </div>
+                            <h3 className="text-xl font-bold text-green-400 mb-6">Faculty Dashboard</h3>
+                            <FacultyDashboard />
                         </motion.div>
                     )}
 

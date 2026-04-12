@@ -8,19 +8,24 @@ const studentSchema = new mongoose.Schema({
     },
     rollNo: {
         type: String,
-        required: true,
-        unique: true
+        default: ''
     },
     department: {
         type: String,
-        required: true
+        default: ''
     },
     year: {
         type: String,
-        required: true
+        default: '1'
+    },
+    // Faculty who invited/enrolled this student
+    faculty: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Faculty',
+        default: null
     },
     faceEmbeddings: {
-        type: [Number], // Array of 128 floats from face_recognition
+        type: [Number],
         default: []
     }
 }, { timestamps: true });
