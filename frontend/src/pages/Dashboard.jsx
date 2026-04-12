@@ -103,17 +103,20 @@ const Dashboard = () => {
             {/* Page header */}
             <motion.div
                 variants={fadeUp} initial="hidden" animate="visible"
-                className="mb-8"
+                className="mb-8 pt-2"
             >
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/40 text-xs mb-4">
-                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                    System Online
-                </div>
-                <h1 className="font-display text-3xl sm:text-4xl font-bold text-white mb-2">
-                    Good to see you, <span className="gradient-x">{user?.name?.split(' ')[0]}</span>
+                <p className="text-white/20 text-xs uppercase tracking-widest mb-2 font-mono">
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </p>
+                <h1 className="font-display text-3xl sm:text-4xl font-bold text-white mb-1.5">
+                    {user?.name?.split(' ')[0]}<span className="text-white/20">,</span>
                 </h1>
-                <p className="text-white/40">
-                    <span className="capitalize">{user?.role}</span> · AttendX Dashboard
+                <p className="text-white/30 text-sm">
+                    <span className="capitalize">{user?.role}</span> — AttendX
+                    <span className="ml-2 inline-flex items-center gap-1 text-green-400/70">
+                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full inline-block" />
+                        Online
+                    </span>
                 </p>
             </motion.div>
 
