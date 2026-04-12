@@ -22,33 +22,55 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({ origin: FRONTEND_URL }));
 app.use(express.json());
 
-// Database Connection
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-    .then(async () => {
-        console.log('MongoDB Connected');
-        // Drop the old unique index on rollNo that blocks multiple students with empty rollNo
+// ── MongoDB Connection (robust — auto-reconnects) ────────────────────────────
+const MONGO_OPTS = {
+    serverSelectionTimeoutMS: 10000,   // fail fast on initial connect
+    socketTimeoutMS: 45000,            // kill idle sockets after 45s
+    heartbeatFrequencyMS: 10000,       // ping Atlas every 10s to keep alive
+    maxPoolSize: 10,
+    minPoolSize: 2,
+    connectTimeoutMS: 15000,
+};
+
+async function connectDB() {
+    try {
+        await mongoose.connect(process.env.MONGO_URI, MONGO_OPTS);
+        console.log('✅ MongoDB Connected to Atlas');
+
+        // Drop the old unique rollNo index (safe to run every boot)
         try {
             const db = mongoose.connection.db;
-            const collections = await db.listCollections({ name: 'students' }).toArray();
-            if (collections.length > 0) {
-                const indexes = await db.collection('students').indexes();
-                const hasRollNoIndex = indexes.some(idx => idx.name === 'rollNo_1' && idx.unique);
-                if (hasRollNoIndex) {
+            const cols = await db.listCollections({ name: 'students' }).toArray();
+            if (cols.length > 0) {
+                const idxs = await db.collection('students').indexes();
+                if (idxs.some(i => i.name === 'rollNo_1' && i.unique)) {
                     await db.collection('students').dropIndex('rollNo_1');
-                    console.log('✅ Dropped unique rollNo index — multiple students can now register');
+                    console.log('✅ Dropped stale rollNo unique index');
                 }
             }
         } catch (e) {
-            // Index may not exist, ignore
-            if (!e.message?.includes('index not found')) {
-                console.warn('Index cleanup warning:', e.message);
-            }
+            if (!e.message?.includes('index not found')) console.warn('Index cleanup:', e.message);
         }
-    })
-    .catch(err => console.error('MongoDB Connection Error:', err));
+    } catch (err) {
+        console.error('❌ MongoDB initial connection failed:', err.message);
+        setTimeout(connectDB, 5000); // retry after 5s
+    }
+}
+
+// Reconnect on Atlas disconnection / network drops
+mongoose.connection.on('disconnected', () => {
+    console.warn('⚠️  MongoDB disconnected — reconnecting...');
+    setTimeout(connectDB, 3000);
+});
+mongoose.connection.on('error', (err) => {
+    console.error('❌ MongoDB error:', err.message);
+});
+mongoose.connection.on('reconnected', () => {
+    console.log('✅ MongoDB reconnected');
+});
+
+connectDB();
+
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
