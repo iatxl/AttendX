@@ -2,9 +2,13 @@ import { useContext, useState, useEffect } from 'react';
 import AuthContext from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import FacultyDashboard from './FacultyDashboard';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { Radio, PlayCircle, QrCode, Scan, MonitorPlay, BarChart3 } from 'lucide-react';
+import React from 'react';
+import {
+    Radio, PlayCircle, QrCode, Scan, MonitorPlay, BarChart3,
+    UserPlus, CheckCircle, X, AlertCircle, Building2
+} from 'lucide-react';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const SOCKET_BASE = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
@@ -67,23 +71,201 @@ function LiveSessionsWidget({ navigate }) {
     );
 }
 
+// ─── Join Faculty Widget ──────────────────────────────────────────────────────
+function JoinFacultyWidget() {
+    const [input, setInput] = useState('');
+    const [preview, setPreview] = useState(null);    // { facultyName, department }
+    const [checking, setChecking] = useState(false);
+    const [joining, setJoining] = useState(false);
+    const [result, setResult] = useState(null);      // 'success' | 'already' | 'error'
+    const [errorMsg, setErrorMsg] = useState('');
+    const debounceRef = React.useRef(null);
+
+    // Extract invite code from input (handles both raw code and full URL)
+    const extractCode = (raw) => {
+        const trimmed = raw.trim();
+        // If it looks like a URL, pull the 'code' param
+        try {
+            const url = new URL(trimmed);
+            return url.searchParams.get('code') || trimmed;
+        } catch {
+            return trimmed; // raw code
+        }
+    };
+
+    const handleInputChange = (val) => {
+        setInput(val);
+        setPreview(null);
+        setResult(null);
+        setErrorMsg('');
+
+        const code = extractCode(val);
+        if (code.length < 4) return;
+
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(async () => {
+            setChecking(true);
+            try {
+                const { data } = await axios.get(`${API}/faculty/invite-info/${code}`);
+                setPreview(data);
+            } catch {
+                setPreview(null);
+            }
+            setChecking(false);
+        }, 500);
+    };
+
+    const handleJoin = async () => {
+        const code = extractCode(input);
+        if (!code) return;
+        setJoining(true);
+        setErrorMsg('');
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${API}/faculty/join`,
+                { inviteCode: code },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setResult('success');
+            setInput('');
+            setPreview(null);
+        } catch (err) {
+            const msg = err.response?.data?.message || 'Failed to join';
+            if (msg.toLowerCase().includes('already')) {
+                setResult('already');
+            } else {
+                setResult('error');
+                setErrorMsg(msg);
+            }
+        }
+        setJoining(false);
+    };
+
+    return (
+        <div className="bg-white/3 border border-white/8 rounded-2xl p-5 space-y-4">
+            <div>
+                <h3 className="font-semibold text-white text-sm flex items-center gap-2 mb-0.5">
+                    <UserPlus className="w-4 h-4 text-white/40" />
+                    Join a Faculty Class
+                </h3>
+                <p className="text-white/25 text-xs">Paste your faculty's invite code or link</p>
+            </div>
+
+            {/* Success state */}
+            {result === 'success' && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3"
+                >
+                    <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                    <div>
+                        <p className="text-green-400 text-sm font-medium">Joined successfully!</p>
+                        <p className="text-green-400/60 text-xs">You're now enrolled. Reload to see updates.</p>
+                    </div>
+                    <button onClick={() => setResult(null)} className="ml-auto text-white/20 hover:text-white/50">
+                        <X className="w-4 h-4" />
+                    </button>
+                </motion.div>
+            )}
+
+            {result === 'already' && (
+                <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+                    <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                    <p className="text-amber-400 text-sm">You're already enrolled under this faculty.</p>
+                </div>
+            )}
+
+            {result !== 'success' && (
+                <>
+                    {/* Input */}
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={input}
+                            onChange={e => handleInputChange(e.target.value)}
+                            placeholder="Paste invite code or link (e.g. E084C3D57DA0)"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:border-white/25 transition-all font-mono pr-10"
+                        />
+                        {checking && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border border-white/20 border-t-white/60 rounded-full animate-spin" />
+                        )}
+                        {preview && !checking && (
+                            <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-400" />
+                        )}
+                    </div>
+
+                    {/* Preview card */}
+                    <AnimatePresence>
+                        {preview && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -4 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-3"
+                            >
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400/30 to-purple-500/30 border border-white/10 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                    {preview.facultyName?.[0]?.toUpperCase() || 'F'}
+                                </div>
+                                <div>
+                                    <p className="text-white text-sm font-medium">{preview.facultyName}</p>
+                                    <p className="text-white/35 text-xs flex items-center gap-1">
+                                        <Building2 className="w-3 h-3" /> {preview.department}
+                                    </p>
+                                </div>
+                                <span className="ml-auto text-xs text-green-400 font-medium">✓ Valid</span>
+                            </motion.div>
+                        )}
+                        {input.length >= 4 && !checking && !preview && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="text-xs text-red-400/70 flex items-center gap-1.5 px-1"
+                            >
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                Code not found — double-check your invite code
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {result === 'error' && (
+                        <p className="text-red-400 text-xs">{errorMsg}</p>
+                    )}
+
+                    <button
+                        onClick={handleJoin}
+                        disabled={!preview || joining}
+                        className="w-full bg-white text-black font-semibold py-2.5 rounded-xl text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:bg-white/90 transition-all flex items-center justify-center gap-2"
+                    >
+                        {joining
+                            ? <><div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> Joining...</>
+                            : <><UserPlus className="w-4 h-4" /> Join Faculty</>
+                        }
+                    </button>
+                </>
+            )}
+        </div>
+    );
+}
+
 // ─── Student Action Card ──────────────────────────────────────────────────────
 function ActionCard({ icon: Icon, title, desc, onClick, color = 'indigo' }) {
     const colors = {
-        indigo: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:border-indigo-500/40',
-        blue: 'bg-blue-500/10 border-blue-500/20 text-blue-400 hover:border-blue-500/40',
-        green: 'bg-green-500/10 border-green-500/20 text-green-400 hover:border-green-500/40',
+        indigo: 'border-white/8 hover:border-white/15 text-indigo-400',
+        blue: 'border-white/8 hover:border-white/15 text-blue-400',
+        green: 'border-white/8 hover:border-white/15 text-green-400',
     };
     return (
         <button
             onClick={onClick}
-            className={`w-full text-left p-5 border rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] ${colors[color]}`}
+            className={`w-full text-left p-5 border rounded-2xl bg-white/3 hover:bg-white/5 transition-all hover:scale-[1.01] active:scale-[0.99] ${colors[color]}`}
         >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${colors[color]}`}>
-                <Icon className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-xl bg-white/6 border border-white/8 flex items-center justify-center mb-3">
+                <Icon className="w-4 h-4" />
             </div>
             <p className="font-semibold text-white text-sm mb-1">{title}</p>
-            <p className="text-white/40 text-xs leading-relaxed">{desc}</p>
+            <p className="text-white/35 text-xs leading-relaxed">{desc}</p>
         </button>
     );
 }
@@ -122,14 +304,19 @@ const Dashboard = () => {
 
             {/* ─── STUDENT VIEW ─── */}
             {user?.role === 'student' && (
-                <div className="space-y-6">
+                <div className="space-y-5">
+                    {/* Join Faculty Widget */}
+                    <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible">
+                        <JoinFacultyWidget />
+                    </motion.div>
+
                     {/* Live Classes */}
-                    <motion.div custom={0} variants={fadeUp} initial="hidden" animate="visible"
-                        className="bg-white/3 border border-white/8 rounded-2xl p-6">
+                    <motion.div custom={1} variants={fadeUp} initial="hidden" animate="visible"
+                        className="bg-white/3 border border-white/8 rounded-2xl p-5">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="font-semibold text-white flex items-center gap-2">
+                            <h2 className="font-semibold text-white text-sm flex items-center gap-2">
                                 <Radio className="w-4 h-4 text-red-400" />
-                                Live Classes
+                                Live Now
                             </h2>
                             <span className="text-xs text-white/20">Refreshes every 10s</span>
                         </div>
@@ -137,26 +324,26 @@ const Dashboard = () => {
                     </motion.div>
 
                     {/* Action Cards */}
-                    <motion.div custom={1} variants={fadeUp} initial="hidden" animate="visible"
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <motion.div custom={2} variants={fadeUp} initial="hidden" animate="visible"
+                        className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <ActionCard
                             icon={MonitorPlay}
                             title="Online Class"
-                            desc="Join a class via shared link with AI focus tracking attendance."
+                            desc="Join via shared link with AI focus tracking."
                             onClick={() => navigate('/class')}
                             color="indigo"
                         />
                         <ActionCard
                             icon={Scan}
-                            title="Scan QR Code"
-                            desc="Mark attendance by scanning the classroom QR code."
+                            title="Scan QR"
+                            desc="Mark attendance by scanning classroom QR."
                             onClick={() => navigate('/dashboard#qr')}
                             color="blue"
                         />
                         <ActionCard
                             icon={BarChart3}
                             title="My Attendance"
-                            desc="View your attendance records and focus analytics."
+                            desc="View your attendance records and analytics."
                             onClick={() => navigate('/dashboard#analytics')}
                             color="green"
                         />
