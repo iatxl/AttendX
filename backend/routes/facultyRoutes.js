@@ -8,6 +8,69 @@ const Session = require('../models/Session');
 const Faculty = require('../models/Faculty');
 const crypto = require('crypto');
 
+// ─── PUBLIC ROUTES (no auth needed) ──────────────────────────────────────────
+
+// @desc   Search faculty by name (public — used during student registration)
+// @route  GET /api/faculty/search?q=name
+router.get('/search', async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        if (!q || q.length < 2) return res.json([]);
+
+        const User = require('../models/User');
+        // Find users with role=faculty whose name matches
+        const matchingUsers = await User.find({
+            role: 'faculty',
+            name: { $regex: q, $options: 'i' }
+        }).select('name email');
+
+        const results = await Promise.all(matchingUsers.map(async (u) => {
+            const fac = await Faculty.findOne({ user: u._id }).select('department inviteCode');
+            if (!fac) return null;
+            return {
+                facultyId: fac._id,
+                userId: u._id,
+                name: u.name,
+                email: u.email,
+                department: fac.department || 'General',
+                inviteCode: fac.inviteCode
+            };
+        }));
+
+        res.json(results.filter(Boolean));
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// @desc   Enroll a student under a faculty by facultyId (called right after registration)
+// @route  POST /api/faculty/enroll
+router.post('/enroll', protect, async (req, res) => {
+    try {
+        const { facultyId } = req.body;
+        if (!facultyId) return res.status(400).json({ message: 'facultyId is required' });
+
+        const faculty = await Faculty.findById(facultyId);
+        if (!faculty) return res.status(404).json({ message: 'Faculty not found' });
+
+        let student = await Student.findOne({ user: req.user._id });
+        if (!student) {
+            student = await Student.create({ user: req.user._id });
+        }
+
+        if (student.faculty && student.faculty.toString() === facultyId.toString()) {
+            return res.json({ message: 'Already enrolled under this faculty' });
+        }
+
+        student.faculty = facultyId;
+        await student.save();
+
+        res.json({ message: `Successfully enrolled under faculty`, facultyId });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // ─── INVITE SYSTEM ────────────────────────────────────────────────────────────
 
 // @desc   Get faculty's own invite link info
