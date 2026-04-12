@@ -9,6 +9,7 @@ import OnlineClass from './pages/OnlineClass';
 import JoinFaculty from './pages/JoinFaculty';
 import LiveClassViewer from './pages/LiveClassViewer';
 import AppLayout from './components/AppLayout';
+import AuthLayout from './components/AuthLayout';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -23,8 +24,8 @@ function App() {
     <Router>
       <div className="min-h-screen text-white relative">
         <Routes>
-          <Route path="/login" element={<AppLayout><Login /></AppLayout>} />
-          <Route path="/register" element={<AppLayout><Register /></AppLayout>} />
+          <Route path="/login" element={<AuthLayout><Login /></AuthLayout>} />
+          <Route path="/register" element={<AuthLayout><Register /></AuthLayout>} />
           <Route
             path="/dashboard"
             element={
