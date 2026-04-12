@@ -27,7 +27,27 @@ mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
-    .then(() => console.log('MongoDB Connected'))
+    .then(async () => {
+        console.log('MongoDB Connected');
+        // Drop the old unique index on rollNo that blocks multiple students with empty rollNo
+        try {
+            const db = mongoose.connection.db;
+            const collections = await db.listCollections({ name: 'students' }).toArray();
+            if (collections.length > 0) {
+                const indexes = await db.collection('students').indexes();
+                const hasRollNoIndex = indexes.some(idx => idx.name === 'rollNo_1' && idx.unique);
+                if (hasRollNoIndex) {
+                    await db.collection('students').dropIndex('rollNo_1');
+                    console.log('✅ Dropped unique rollNo index — multiple students can now register');
+                }
+            }
+        } catch (e) {
+            // Index may not exist, ignore
+            if (!e.message?.includes('index not found')) {
+                console.warn('Index cleanup warning:', e.message);
+            }
+        }
+    })
     .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Routes

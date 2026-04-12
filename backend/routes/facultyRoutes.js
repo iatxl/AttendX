@@ -106,39 +106,62 @@ router.post('/subjects', protect, async (req, res) => {
     }
 });
 
-// @desc   Get students enrolled under this faculty (via invite OR attending their sessions)
+// @desc   Get students the faculty can see (enrolled + attended + all system students as fallback)
 // @route  GET /api/faculty/students
 router.get('/students', protect, async (req, res) => {
     try {
         const faculty = await Faculty.findOne({ user: req.user._id });
         if (!faculty) return res.status(404).json({ message: 'Faculty profile not found' });
 
+        // Set to track unique student IDs
+        const seen = new Set();
+        let allStudents = [];
+
         // Method 1: Students who explicitly joined via invite link
         const inviteStudents = await Student.find({ faculty: faculty._id })
             .populate('user', 'name email');
+        for (const s of inviteStudents) {
+            if (!seen.has(s._id.toString())) {
+                seen.add(s._id.toString());
+                allStudents.push({ ...s.toObject(), enrolledVia: 'invite' });
+            }
+        }
 
         // Method 2: Students who have attended any of this faculty's sessions
         const facultySessions = await Session.find({ faculty: req.user._id }).select('_id');
         const sessionIds = facultySessions.map(s => s._id);
-
-        let attendanceStudents = [];
         if (sessionIds.length > 0) {
             const attendanceRecords = await Attendance.find({ session: { $in: sessionIds } })
                 .populate({ path: 'student', populate: { path: 'user', select: 'name email' } });
-
-            // Unique students from attendance
-            const seen = new Set(inviteStudents.map(s => s._id.toString()));
             for (const record of attendanceRecords) {
                 if (record.student && !seen.has(record.student._id.toString())) {
                     seen.add(record.student._id.toString());
-                    attendanceStudents.push(record.student);
+                    allStudents.push({ ...record.student.toObject(), enrolledVia: 'attendance' });
                 }
             }
         }
 
-        const allStudents = [...inviteStudents, ...attendanceStudents];
+        // Method 3: Fallback — show ALL students in the system so the tab is never empty
+        // This helps when no one has used invite link yet
+        if (allStudents.length === 0) {
+            const User = require('../models/User');
+            const studentUsers = await User.find({ role: 'student' }).select('name email');
+            for (const u of studentUsers) {
+                const studentRecord = await Student.findOne({ user: u._id });
+                if (studentRecord && !seen.has(studentRecord._id.toString())) {
+                    seen.add(studentRecord._id.toString());
+                    allStudents.push({
+                        ...studentRecord.toObject(),
+                        user: { _id: u._id, name: u.name, email: u.email },
+                        enrolledVia: 'system'
+                    });
+                }
+            }
+        }
+
         res.json(allStudents);
     } catch (err) {
+        console.error('Get students error:', err);
         res.status(500).json({ message: err.message });
     }
 });

@@ -9,6 +9,7 @@ const studentSchema = new mongoose.Schema({
     rollNo: {
         type: String,
         default: ''
+        // NOTE: NOT unique — students can have empty rollNo before faculty assigns one
     },
     department: {
         type: String,

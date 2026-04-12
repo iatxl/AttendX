@@ -159,8 +159,10 @@ const FacultyDashboard = () => {
                     </h3>
 
                     {students.length === 0 ? (
-                        <div className="text-white/40 text-center py-12 border border-white/10 rounded-xl">
-                            No students registered yet.
+                        <div className="text-center py-12 border border-white/10 rounded-xl space-y-3">
+                            <Users className="w-10 h-10 text-white/15 mx-auto" />
+                            <p className="text-white/40 text-sm">No students yet</p>
+                            <p className="text-white/20 text-xs">Share your invite link so students can enroll</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -171,20 +173,31 @@ const FacultyDashboard = () => {
                                         onClick={() => fetchStudentReport(student._id)}
                                         className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors text-left"
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center text-green-400 font-bold text-sm">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500/30 to-purple-500/30 border border-white/10 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                                                 {student.user?.name?.[0]?.toUpperCase() || '?'}
                                             </div>
-                                            <div>
-                                                <p className="font-medium text-white">{student.user?.name || 'Unknown'}</p>
-                                                <p className="text-xs text-white/40">{student.user?.email}</p>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <p className="font-medium text-white text-sm">{student.user?.name || 'Unknown'}</p>
+                                                    {student.enrolledVia === 'invite' && (
+                                                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20">Enrolled</span>
+                                                    )}
+                                                    {student.enrolledVia === 'attendance' && (
+                                                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">Attended</span>
+                                                    )}
+                                                    {student.enrolledVia === 'system' && (
+                                                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-white/8 text-white/30 border border-white/10">Registered</span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-white/40 truncate">{student.user?.email}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-xs text-white/40 hidden sm:block">View Report</span>
+                                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                            <span className="text-xs text-white/30 hidden sm:block">Report</span>
                                             {selectedStudent?._id === student._id
-                                                ? <ChevronUp className="w-4 h-4 text-green-400" />
-                                                : <ChevronDown className="w-4 h-4 text-white/40" />
+                                                ? <ChevronUp className="w-4 h-4 text-indigo-400" />
+                                                : <ChevronDown className="w-4 h-4 text-white/30" />
                                             }
                                         </div>
                                     </button>
