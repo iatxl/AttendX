@@ -106,15 +106,38 @@ router.post('/subjects', protect, async (req, res) => {
     }
 });
 
-// @desc   Get students enrolled under this faculty
+// @desc   Get students enrolled under this faculty (via invite OR attending their sessions)
 // @route  GET /api/faculty/students
 router.get('/students', protect, async (req, res) => {
     try {
         const faculty = await Faculty.findOne({ user: req.user._id });
         if (!faculty) return res.status(404).json({ message: 'Faculty profile not found' });
 
-        const students = await Student.find({ faculty: faculty._id }).populate('user', 'name email');
-        res.json(students);
+        // Method 1: Students who explicitly joined via invite link
+        const inviteStudents = await Student.find({ faculty: faculty._id })
+            .populate('user', 'name email');
+
+        // Method 2: Students who have attended any of this faculty's sessions
+        const facultySessions = await Session.find({ faculty: req.user._id }).select('_id');
+        const sessionIds = facultySessions.map(s => s._id);
+
+        let attendanceStudents = [];
+        if (sessionIds.length > 0) {
+            const attendanceRecords = await Attendance.find({ session: { $in: sessionIds } })
+                .populate({ path: 'student', populate: { path: 'user', select: 'name email' } });
+
+            // Unique students from attendance
+            const seen = new Set(inviteStudents.map(s => s._id.toString()));
+            for (const record of attendanceRecords) {
+                if (record.student && !seen.has(record.student._id.toString())) {
+                    seen.add(record.student._id.toString());
+                    attendanceStudents.push(record.student);
+                }
+            }
+        }
+
+        const allStudents = [...inviteStudents, ...attendanceStudents];
+        res.json(allStudents);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
