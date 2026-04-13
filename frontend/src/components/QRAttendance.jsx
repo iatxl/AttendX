@@ -163,34 +163,41 @@ export default function QRAttendance({ subjects, token }) {
     const subjectName = subjects.find(s => s._id === selectedSubject)?.name || '';
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-6">
             {/* Subject selector */}
-            <div className="bg-white/5 border border-white/12 rounded-2xl p-5 space-y-4">
-                <h4 className="text-white font-semibold text-sm flex items-center gap-2">
-                    <QrCode className="w-4 h-4 text-indigo-400" />
-                    QR Attendance
+            <div className="bg-white/10 border border-white/20 rounded-3xl p-6 space-y-5 backdrop-blur-sm shadow-xl shadow-black/10">
+                <h4 className="text-white font-bold text-base flex items-center gap-2">
+                    <QrCode className="w-5 h-5 text-indigo-400" />
+                    Authentication Protocol: QR
                 </h4>
 
-                <div>
-                    <label className="text-xs text-white/50 mb-1.5 block">Select Subject</label>
-                    <select
-                        value={selectedSubject}
-                        onChange={e => { setSelectedSubject(e.target.value); setSession(null); setUploadResult(null); }}
-                        className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-400/50 transition-all"
-                    >
-                        <option value="" className="bg-gray-900">— Select subject —</option>
-                        {subjects.map(s => (
-                            <option key={s._id} value={s._id} className="bg-gray-900">{s.name} ({s.code})</option>
-                        ))}
-                    </select>
+                <div className="space-y-1.5">
+                    <label className="text-[10px] text-white/50 font-black uppercase tracking-[0.2em] ml-1">Assigned Subject</label>
+                    <div className="relative">
+                        <select
+                            value={selectedSubject}
+                            onChange={e => { setSelectedSubject(e.target.value); setSession(null); setUploadResult(null); }}
+                            className="w-full bg-white/5 border border-white/15 rounded-2xl px-5 py-3.5 text-white text-sm font-bold focus:outline-none focus:border-indigo-500/50 transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="" className="bg-gray-950">— Select subject or module —</option>
+                            {subjects.map(s => (
+                                <option key={s._id} value={s._id} className="bg-gray-950">{s.name} [{s.code}]</option>
+                            ))}
+                        </select>
+                        <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-white/30">
+                            <Clock className="w-4 h-4" />
+                        </div>
+                    </div>
                     {subjects.length === 0 && (
-                        <p className="text-xs text-amber-400/70 mt-1.5">Create a subject first in the Subjects tab</p>
+                        <p className="text-[10px] text-amber-400 font-bold mt-2 flex items-center gap-1.5 px-1 uppercase tracking-tighter">
+                            <RefreshCw className="w-3 h-3" /> No subjects initialized in your catalog
+                        </p>
                     )}
                 </div>
 
                 {error && (
-                    <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2.5">
-                        <XCircle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
+                    <div className="flex items-center gap-3 text-red-400 text-xs font-bold bg-red-500/15 border border-red-500/25 rounded-2xl px-4 py-3">
+                        <XCircle className="w-4 h-4 flex-shrink-0" /> {error}
                     </div>
                 )}
 
@@ -198,20 +205,20 @@ export default function QRAttendance({ subjects, token }) {
                     <button
                         onClick={generateQR}
                         disabled={!selectedSubject || generating}
-                        className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl py-3 text-sm font-semibold transition-all"
+                        className="w-full flex items-center justify-center gap-3 bg-white text-black hover:bg-white/90 disabled:opacity-40 rounded-2xl py-4 text-sm font-black transition-all shadow-xl shadow-white/5 uppercase tracking-wider"
                     >
                         {generating
-                            ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
-                            : <><QrCode className="w-4 h-4" /> Generate QR Code</>
+                            ? <><Loader2 className="w-5 h-5 animate-spin" /> Synchronizing...</>
+                            : <><QrCode className="w-5 h-5" /> Initialize QR Gateway</>
                         }
                     </button>
                 ) : (
                     <button
                         onClick={regenerate}
                         disabled={generating}
-                        className="w-full flex items-center justify-center gap-2 bg-white/8 hover:bg-white/12 border border-white/15 disabled:opacity-40 text-white rounded-xl py-2.5 text-sm font-medium transition-all"
+                        className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 disabled:opacity-40 text-white rounded-2xl py-3.5 text-sm font-bold transition-all shadow-inner"
                     >
-                        <RefreshCw className="w-4 h-4" /> New QR Code
+                        <RefreshCw className="w-4 h-4" /> Cycle Security Hash
                     </button>
                 )}
             </div>
@@ -220,54 +227,57 @@ export default function QRAttendance({ subjects, token }) {
             <AnimatePresence>
                 {session && (
                     <motion.div
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
                         className="space-y-4"
                     >
                         {/* Timer bar */}
-                        <div className={`flex items-center justify-between px-4 py-3 rounded-xl border text-sm ${
-                            timeLeft > 20 ? 'bg-green-500/10 border-green-500/25 text-green-400'
-                            : timeLeft > 0 ? 'bg-amber-500/10 border-amber-500/25 text-amber-400'
-                            : 'bg-red-500/10 border-red-500/25 text-red-400'
+                        <div className={`flex items-center justify-between px-5 py-4 rounded-2xl border backdrop-blur-md shadow-2xl ${
+                            timeLeft > 20 ? 'bg-green-500/15 border-green-500/30 text-green-400'
+                            : timeLeft > 0 ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                            : 'bg-red-500/15 border-red-500/30 text-red-400'
                         }`}>
-                            <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4" />
-                                <span className="font-medium">
-                                    {timeLeft > 0 ? `QR expires in ${timeLeft}s` : 'QR expired — generate a new one'}
+                            <div className="flex items-center gap-3">
+                                <span className={`w-2 h-2 rounded-full animate-pulse shadow-[0_0_8px_currentColor] ${timeLeft > 0 ? '' : 'hidden'}`} />
+                                <span className="font-black text-xs uppercase tracking-[0.15em]">
+                                    {timeLeft > 0 ? `Token Life: ${timeLeft}s` : 'Token Expired — Security Reset Required'}
                                 </span>
                             </div>
-                            <span className="font-mono font-bold text-lg">{timeLeft > 0 ? timeLeft : '—'}</span>
+                            <span className="font-mono font-black text-xl tabular-nums">{timeLeft > 0 ? timeLeft : '00'}</span>
                         </div>
 
-                        {/* QR Code */}
-                        <div className="bg-[#0d0d0d] border border-white/10 rounded-2xl p-6 flex flex-col items-center gap-4">
-                            <QRImage data={session.qrCodeHash} size={240} />
-                            <div className="text-center">
-                                <p className="text-white font-semibold text-sm">{subjectName}</p>
-                                <p className="text-white/40 text-xs mt-0.5 font-mono">{session.qrCodeHash?.slice(0, 16)}...</p>
+                        {/* QR Code Container */}
+                        <div className="bg-[#0b0b0b] border-2 border-white/10 rounded-[2.5rem] p-8 flex flex-col items-center gap-6 shadow-2xl relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                            <div className="bg-white p-4 rounded-3xl shadow-[0_0_40px_rgba(255,255,255,0.05)]">
+                                <QRImage data={session.qrCodeHash} size={260} />
+                            </div>
+                            <div className="text-center space-y-1">
+                                <p className="text-white font-black text-lg uppercase tracking-tight">{subjectName}</p>
+                                <p className="text-white/30 text-[10px] font-mono font-medium tracking-widest">{session.qrCodeHash?.slice(0, 24)}...</p>
                             </div>
                         </div>
 
                         {/* Actions */}
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {/* Download */}
                             <button
                                 onClick={() => downloadQR(session.qrCodeHash, subjectName)}
-                                className="flex items-center justify-center gap-2 bg-white text-black font-semibold py-3 rounded-xl text-sm hover:bg-white/90 transition-all"
+                                className="flex items-center justify-center gap-2 bg-white text-black font-black py-4 rounded-2xl text-sm hover:bg-white/90 transition-all shadow-xl shadow-white/5 uppercase tracking-wide"
                             >
-                                <Download className="w-4 h-4" /> Download QR
+                                <Download className="w-5 h-5" /> Export Token
                             </button>
 
                             {/* Upload to verify */}
                             <button
                                 onClick={() => fileRef.current?.click()}
                                 disabled={uploading || timeLeft === 0}
-                                className="flex items-center justify-center gap-2 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 disabled:opacity-40 py-3 rounded-xl text-sm font-medium transition-all"
+                                className="flex items-center justify-center gap-2 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 disabled:opacity-40 py-4 rounded-2xl text-sm font-bold transition-all shadow-inner uppercase tracking-wide"
                             >
                                 {uploading
-                                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Reading...</>
-                                    : <><Upload className="w-4 h-4" /> Upload & Verify</>
+                                    ? <><Loader2 className="w-5 h-5 animate-spin" /> Verifying...</>
+                                    : <><Upload className="w-5 h-5" /> Capture & Validate</>
                                 }
                             </button>
                             <input
@@ -280,36 +290,43 @@ export default function QRAttendance({ subjects, token }) {
                         </div>
 
                         {/* Upload instructions */}
-                        <div className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-xs text-white/45 space-y-1">
-                            <p className="text-white/60 font-medium mb-1">How it works</p>
-                            <p>1. Download the QR and display it on your screen / projector</p>
-                            <p>2. Students scan it with their phone camera</p>
-                            <p>3. Upload a photo of a student's scan to mark them present</p>
+                        <div className="bg-white/8 border border-white/15 rounded-2xl px-5 py-4 text-[10px] text-white/50 space-y-2 uppercase tracking-tight font-bold backdrop-blur-sm">
+                            <p className="text-indigo-400 font-black mb-1 tracking-widest text-[11px]">Protocol Instructions</p>
+                            <div className="flex gap-4">
+                                <p className="flex-1 opacity-80"><span className="text-white mr-1">01.</span> Display the token on a main display device</p>
+                                <p className="flex-1 opacity-80"><span className="text-white mr-1">02.</span> Students must initiate scan via their secure portal</p>
+                                <p className="flex-1 opacity-80"><span className="text-white mr-1">03.</span> Manual override: upload student image for verification</p>
+                            </div>
                         </div>
 
                         {/* Upload result */}
                         {uploadError && (
-                            <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm">
-                                <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                            <div className="flex items-start gap-3 bg-red-500/15 border border-red-500/25 text-red-400 px-5 py-4 rounded-2xl text-sm font-bold shadow-lg">
+                                <XCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                                 <span>{uploadError}</span>
                             </div>
                         )}
 
                         {uploadResult && (
                             <motion.div
-                                initial={{ opacity: 0, y: 6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 space-y-2"
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="bg-green-500/15 border border-green-500/30 rounded-2xl p-5 space-y-3 shadow-xl shadow-green-900/10"
                             >
-                                <div className="flex items-center gap-2 text-green-400 font-semibold text-sm">
-                                    <CheckCircle className="w-4 h-4" />
-                                    Attendance Marked
+                                <div className="flex items-center gap-3 text-green-400 font-black text-sm uppercase tracking-wider">
+                                    <CheckCircle className="w-5 h-5" />
+                                    Validation Confirmed
                                 </div>
                                 {uploadResult.studentName && (
-                                    <p className="text-white/60 text-xs">✓ {uploadResult.studentName} marked <strong className="text-green-400">Present</strong></p>
+                                    <div className="flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3 border border-white/10">
+                                        <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center text-green-400 font-bold text-xs">
+                                            {uploadResult.studentName?.[0]}
+                                        </div>
+                                        <p className="text-white font-bold text-xs capitalize">{uploadResult.studentName} <span className="text-white/40 ml-1 font-medium">— RECORDED PRESENT</span></p>
+                                    </div>
                                 )}
                                 {uploadResult.message && (
-                                    <p className="text-white/50 text-xs">{uploadResult.message}</p>
+                                    <p className="text-white/50 text-[10px] uppercase font-bold tracking-widest px-1">{uploadResult.message}</p>
                                 )}
                             </motion.div>
                         )}

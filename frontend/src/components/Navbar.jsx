@@ -25,25 +25,25 @@ const Navbar = () => {
                 className="fixed top-0 left-0 right-0 z-50"
             >
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="mt-3 mx-2 sm:mx-4 bg-white/8 backdrop-blur-2xl border border-white/15 rounded-2xl px-5 py-3 flex items-center justify-between shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+                    <div className="mt-3 mx-2 sm:mx-4 bg-white/12 backdrop-blur-2xl border border-white/25 rounded-2xl px-5 py-3 flex items-center justify-between shadow-[0_0_50px_rgba(0,0,0,0.6)]">
 
                         {/* Logo */}
-                        <Link to="/" className="font-display text-xl font-bold tracking-tight flex items-center gap-1">
-                            <span className="text-white">Attend</span>
-                            <span className="gradient-x">X</span>
+                        <Link to="/" className="font-display text-xl font-bold tracking-tight flex items-center gap-1.5 transition-transform hover:scale-[1.02] active:scale-[0.98]">
+                            <span className="text-white drop-shadow-sm">Attend</span>
+                            <span className="gradient-x drop-shadow-md">X</span>
                         </Link>
 
                         {/* Desktop: Dashboard link (only when logged in) */}
                         {user && (
                             <Link
                                 to="/dashboard"
-                                className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+                                className={`hidden md:flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm ${
                                     location.pathname === '/dashboard'
-                                        ? 'bg-white/15 text-white'
-                                        : 'text-white/70 hover:text-white hover:bg-white/8'
+                                        ? 'bg-white text-black'
+                                        : 'text-white/90 hover:text-white hover:bg-white/15'
                                 }`}
                             >
-                                <LayoutDashboard className="w-3.5 h-3.5" />
+                                <LayoutDashboard className="w-4 h-4" />
                                 Dashboard
                             </Link>
                         )}
@@ -53,18 +53,18 @@ const Navbar = () => {
                             {user ? (
                                 <>
                                     {/* User pill */}
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/8 border border-white/15">
-                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white">
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/12 border border-white/20 shadow-inner">
+                                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-black text-white shadow-lg">
                                             {user.name?.[0]?.toUpperCase()}
                                         </div>
-                                        <span className="text-white text-sm font-medium">{user.name}</span>
-                                        <span className="text-xs bg-indigo-500/25 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/40 capitalize">
+                                        <span className="text-white text-sm font-bold tracking-tight">{user.name}</span>
+                                        <span className="text-[10px] bg-indigo-500 text-white px-2 py-0.5 rounded-full font-black uppercase tracking-widest shadow-sm">
                                             {user.role}
                                         </span>
                                     </div>
                                     <button
                                         onClick={handleLogout}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white/60 hover:text-white hover:bg-white/8 transition-all text-sm"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-wider"
                                     >
                                         <LogOut className="w-3.5 h-3.5" />
                                         Logout
@@ -72,12 +72,12 @@ const Navbar = () => {
                                 </>
                             ) : (
                                 <>
-                                    <Link to="/login" className="text-white/70 hover:text-white text-sm transition-colors px-3 py-1.5">
+                                    <Link to="/login" className="text-white/90 hover:text-white text-sm font-bold transition-colors px-4 py-2">
                                         Login
                                     </Link>
                                     <Link
                                         to="/register"
-                                        className="bg-white text-black text-sm font-semibold px-4 py-1.5 rounded-full hover:bg-white/90 transition-all"
+                                        className="bg-white text-black text-sm font-black px-6 py-2 rounded-full hover:bg-white/90 transition-all shadow-xl shadow-white/10"
                                     >
                                         Get Started →
                                     </Link>
@@ -87,7 +87,7 @@ const Navbar = () => {
 
                         {/* Mobile menu button */}
                         <button
-                            className="md:hidden text-white/70 hover:text-white p-1.5"
+                            className="md:hidden text-white/90 hover:text-white p-2 rounded-xl bg-white/10 border border-white/15"
                             onClick={() => setMobileOpen(o => !o)}
                         >
                             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

@@ -5,58 +5,59 @@ import { jwtDecode } from 'jwt-decode';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
+    // Immediately hydrate from localStorage so UI never flashes logged-out
+    const [user, setUser] = useState(() => {
+        try {
+            const stored = localStorage.getItem('user');
+            return stored ? JSON.parse(stored) : null;
+        } catch { return null; }
+    });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                const decoded = jwtDecode(token);
-                if (decoded.exp * 1000 < Date.now()) {
-                    // Token genuinely expired
-                    logout();
-                    setLoading(false);
-                    return;
-                }
+        if (!token) {
+            setLoading(false);
+            return;
+        }
 
-                // Set user from token immediately so UI doesn't flash logged-out
-                const tokenUser = {
-                    _id: decoded.id,
-                    name: decoded.name,
-                    email: decoded.email,
-                    role: decoded.role,
-                };
-
-                api.get('/auth/me')
-                    .then(res => {
-                        setUser(res.data);
-                    })
-                    .catch((err) => {
-                        // Only logout on 401 (invalid/revoked token)
-                        // Network errors or 500s should NOT log the user out
-                        if (err.response?.status === 401) {
-                            logout();
-                        } else {
-                            // Keep user logged in using token data as fallback
-                            setUser(tokenUser);
-                        }
-                    })
-                    .finally(() => {
-                        setLoading(false);
-                    });
-            } catch (error) {
+        // Check JWT expiry locally first (no network needed)
+        try {
+            const decoded = jwtDecode(token);
+            if (decoded.exp * 1000 < Date.now()) {
+                // Token genuinely expired — clear everything
                 logout();
                 setLoading(false);
+                return;
             }
-        } else {
+        } catch {
+            logout();
             setLoading(false);
+            return;
         }
+
+        // Verify token is still valid on the server
+        api.get('/auth/me')
+            .then(res => {
+                setUser(res.data);
+                localStorage.setItem('user', JSON.stringify(res.data));
+            })
+            .catch((err) => {
+                if (err.response?.status === 401) {
+                    // Token rejected by server (user deleted, cluster switched, etc.)
+                    logout();
+                }
+                // Network errors / 500s: keep existing user state from localStorage
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, []);
 
     const login = async (email, password) => {
         const { data } = await api.post('/auth/login', { email, password });
         localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data));
         setUser(data);
         return data;
     };
@@ -64,12 +65,14 @@ export const AuthProvider = ({ children }) => {
     const register = async (name, email, password, role) => {
         const { data } = await api.post('/auth/register', { name, email, password, role });
         localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data));
         setUser(data);
         return data;
     };
 
     const logout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
         setUser(null);
     };
 
